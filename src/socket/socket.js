@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import cookie from "cookie";
+import cookie * as from "cookie";
 
 import pool from "../config/db.js";
 import Message from "../models/Message.js";
