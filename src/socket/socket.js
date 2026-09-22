@@ -76,78 +76,79 @@ export const initializeSocket = (io) => {
       }
     });
 
-    socket.on(
-      "send_message",
-      async ({ chatId, text }) => {
-        try {
-          if (!text || !text.trim()) {
-            return;
-          }
-
-          const participant = await pool.query(
-            `
-            SELECT id
-            FROM chat_participants
-            WHERE chat_id = $1
-            AND user_id = $2
-            `,
-            [chatId, socket.user.id]
-          );
-
-          if (participant.rows.length === 0) {
-            return;
-          }
-
-          const messageId = uuidv4();
-
-          const cleanText = text.trim();
-
-          const pgMessage = await pool.query(
-            `
-            INSERT INTO messages
-            (
-              id,
-              chat_id,
-              sender_id,
-              text_content
-            )
-            VALUES ($1, $2, $3, $4)
-            RETURNING *
-            `,
-            [
-              messageId,
-              chatId,
-              socket.user.id,
-              cleanText
-            ]
-          );
-
-          const message = pgMessage.rows[0];
-
-          await Message.create({
-            messageId,
-            chatId,
-            senderId: socket.user.id,
-            textContent: cleanText
-          });
-
-          io.to(chatId).emit(
-            "new_message",
-            message
-          );
-        } catch (error) {
-          console.error(
-            "Send message error:",
-            error
-          );
-
-          socket.emit(
-            "error_message",
-            "Could not send message"
-          );
-        }
+socket.on(
+  "send_message",
+  async ({ chatId, text }) => {
+    try {
+      if (!text || !text.trim()) {
+        return;
       }
-    );
+
+      const participant = await pool.query(
+        `
+        SELECT id
+        FROM chat_participants
+        WHERE chat_id = $1
+        AND user_id = $2
+        `,
+        [chatId, socket.user.id]
+      );
+
+      if (participant.rows.length === 0) {
+        return;
+      }
+
+      const messageId = uuidv4();
+
+      const cleanText = text.trim();
+
+      const pgMessage = await pool.query(
+        `
+        INSERT INTO messages
+        (
+          id,
+          chat_id,
+          sender_id,
+          text_content
+        )
+        VALUES ($1, $2, $3, $4)
+        RETURNING *
+        `,
+        [
+          messageId,
+          chatId,
+          socket.user.id,
+          cleanText
+        ]
+      );
+
+      const message = pgMessage.rows[0];
+
+      await Message.create({
+        messageId,
+        chatId,
+        senderId: socket.user.id,
+        textContent: cleanText
+      });
+
+      io.to(chatId).emit(
+        "new_message",
+        message
+      );
+
+    } catch (error) {
+      console.error(
+        "Send message error:",
+        error
+      );
+
+      socket.emit(
+        "error_message",
+        "Could not send message"
+      );
+    }
+  }
+);
 
     socket.on("disconnect", () => {
       console.log(
