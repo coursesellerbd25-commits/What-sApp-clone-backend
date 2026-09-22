@@ -166,3 +166,27 @@ export const getMe = async (req, res) => {
     user: result.rows[0]
   });
 };
+
+export const getUsers = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `
+      SELECT id, email, created_at
+      FROM users
+      WHERE id != $1
+      ORDER BY created_at DESC
+      `,
+      [req.user.id]
+    );
+
+    res.json({
+      users: result.rows
+    });
+  } catch (error) {
+    console.error("Get users error:", error);
+
+    res.status(500).json({
+      message: "Could not load users"
+    });
+  }
+};
